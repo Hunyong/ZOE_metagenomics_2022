@@ -1,3 +1,8 @@
+### C31_pathway_top_expression.R
+### Author: Hunyong Cho
+### Identify the top expressed pathways (free the context of ECC)
+
+
 ### 0.1 library
   source("scripts/F.generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
   library(ggplot2); library(ggrepel)

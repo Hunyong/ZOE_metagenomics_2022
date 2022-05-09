@@ -1,3 +1,8 @@
+### C23_test_validation.R
+### Author: Hunyong Cho
+### Validating with the ZOE 2.0 pilot data.
+
+
 ### 0. library
   library(dplyr)
   library(ggplot2)

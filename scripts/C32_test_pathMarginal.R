@@ -1,4 +1,7 @@
-###### Conditional test ######################################################
+### C32_test_pathMarginal.R
+### Author: Hunyong Cho
+### Identify the pathways with significant association with the ECC 
+###   among the pathways that contain the 16 significant species.
 
 ### 0.1 library
   library(ggrepel)

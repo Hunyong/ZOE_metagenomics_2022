@@ -1,5 +1,7 @@
-###### Conditional test ######################################################
-print("C2_test_main.R")
+### C21 test_main.R
+### Author: Hunyong Cho
+### Identify the species with significant association with the ECC.
+
 
 ############################################################################################
 ### 0.1 library

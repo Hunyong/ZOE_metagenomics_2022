@@ -1,3 +1,7 @@
+### C22_test_summary.R
+### Author: Hunyong Cho
+### Summarizing the results in C21.R
+
 ### 0.1 library
   source("scripts/F.generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
   library(ggplot2); library(ggrepel); library(dplyr); library(cowplot)
