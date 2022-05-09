@@ -20,7 +20,7 @@
   rna.mutans = t(dat$otu[gene.quality.by.species$mutans,,2])
   geneSm = colnames(rna.mutans) = gsub("(.*) g__.*mutans$" , "Sm_\\1", colnames(rna.mutans))
   
-  ### Mutans data (p = 39)
+  ### Sputigena data (p = 39)
   rna.sputigena = t(dat$otu[gene.quality.by.species$sputigena,,2])
   geneSs = colnames(rna.sputigena) = gsub("(.*) g__.*sputigena$" , "Ss_\\1", colnames(rna.sputigena))
   
