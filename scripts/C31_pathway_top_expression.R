@@ -140,3 +140,5 @@
     print
 
   write.csv(tab2c, sprintf("output/C31_pathway_top30_humann%d_%s_%sMarginal.csv", humann, "RNA", sigTaxa.nm), row.names = F)
+
+  

@@ -7,6 +7,7 @@
   source("scripts/F.generic.R")
   dat = readRDS("Data-processed/data.geneRPK.full.DRNA.ZOE2.RNASEQ.rds")
   reads.gene = dat$reads[,, 2] %>% apply(1, mean)
+  dat$reads[,, 2] %>% apply(2, sum) %>% mean %>% print
   gene.quality = rownames(dat$reads)[reads.gene > 20] # 542 gene-species
   key = c("mutans", "sputigena", "salivae", "wadei")
   gene.quality.by.species = 

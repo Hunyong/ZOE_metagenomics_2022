@@ -21,8 +21,14 @@
     
     
     # 1. Demographics and phenotype distribution
-    dat$meta[, trait] %>% apply(2, function(x) c(mean = mean(x, na.rm = TRUE),
-                                                 sd = sd(x, na.rm = TRUE)))
+    dat$meta[, trait] %>% 
+      apply(2, function(x) c(mean = mean(x, na.rm = TRUE),
+                             sd = sd(x, na.rm = TRUE))) %>% 
+      print
+    dat$meta$agemo %>% 
+      {c(mean = mean(., na.rm = TRUE),
+         sd = sd(., na.rm = TRUE))} %>% 
+      print
     
     
     # 2. dCor  

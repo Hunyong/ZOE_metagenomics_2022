@@ -7,8 +7,8 @@
   library(ggrepel)
   library(dplyr)
   library(tibble)
-  source("F.aesthetics.R")  # For color pallette
-  source("F.generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
+  source("scripts/F.aesthetics.R")  # For color pallette
+  source("scripts/F.generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
 
 
   type1 =  "path"
@@ -82,7 +82,6 @@
     nm.common = paste0(if (bracken) "bracken_" else if (humann == 3) "humann3_" else "", 
                        "cov-", sigTaxa.nm, "Marginal_", type, "-", DRNA, "-", pheno, "-ZOE", ZOE)
     output.nm.final = paste0("output/C32_LM_", nm.common,  ".rds")
-    sigPlot.nm = paste0("figure/C05-sigPlot_", nm.common, "-item-LM-model", ".png")
     
     ## 2.1 testing!
     for (i in path.with.key.bact) {  ### testing only important bacterias
@@ -101,15 +100,15 @@
                    pval = result.pval)
     
     ## 2.2 p-adjusting
-    dim.int = dim(result$pval[, nm.int, drop = FALSE])
-    dimnames.int = dimnames(result$pval[, nm.int, drop = FALSE])
+    dim.int = dim(result$pval[, "phenotype", drop = FALSE])
+    dimnames.int = dimnames(result$pval[, "phenotype", drop = FALSE])
     result$pval.adj <-
       result$pval %>% 
       apply(2, function(s) p.adjust(s, method = "BH")) %>% 
       as.data.frame
     
     # BH adjustment (and take the min of both ECC1 and 2)
-    result$pval.adj[, nm.int, drop = FALSE] %>% 
+    result$pval.adj[, "phenotype", drop = FALSE] %>% 
       apply(1, min, na.rm = TRUE) -> result$pval.adj$min   #for CF, apply(1, min) is just identity
     result$sigFeature = path.with.key.bact[result$pval.adj$min < threshold.pval]
     
@@ -143,7 +142,7 @@
   tab3 =
     left_join(result_t3c, result_mt3c) %>% 
     left_join(tab2c, .)
-  write.csv(tab3, sprintf("output/_C32_composition_in_path_humann%d_%s_%sMarginal.csv")
+  write.csv(tab3, sprintf("output/_C32_composition_in_path_humann%d_%s_%sMarginal.csv", humann, "RNA", sigTaxa.nm))
   
   tab2b %>% 
     left_join(result_mt3c) %>% 

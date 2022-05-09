@@ -5,7 +5,7 @@ Pathobiont-mediated spatial structuring enhances biofilm virulence in childhood 
 `scripts` folder contains the R code for implementing the linear model fitting (C1.R), ...
 The `F-` files are the helper functions.
 
-One the data are prepared in the following format, the C11, C21, C22, C31, C32, C41, all ending with `.R`, can be run to obtain the desired outputs and figures.  
+One the data are prepared in the following format, the C11, C21, C22, C31, C32, C41, all ending with `.R`, can be run to obtain the desired outputs and figures. The leading numbers corresponds to the flow of the analyses.  
 
 
 # Data

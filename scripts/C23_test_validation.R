@@ -185,7 +185,7 @@
           note.p = ifelse(zoe1.p <= 0.10, "~'*  '", "~'    '"),
           note.p = ifelse(zoe1.p <= 0.05, "~'** '", note.p),
           note.p = ifelse(zoe1.p <= 0.01, "~'***'", note.p),
-          key4 = species %in% {key.bact23 %>% gsub(".*s__", "", .) %>% gsub("_", " ", .)},
+          key4 = species %in% {key.bact4 %>% gsub(".*s__", "", .) %>% gsub("_", " ", .)},
           # p-value based label
           label = sprintf("%s%s%s~%s", 
                           ifelse(key4, "underline(", ""), gsub(" ", "~", species), ifelse(key4, ")", ""),
@@ -337,12 +337,6 @@ save_plot(paste0("figure/_C2_validation_plot_2x2_bracken_combined-cov_ZOE2_valid
           note.pR = ifelse(lm.p.R <= 0.01, "~'***'", note.pR),
           # note.pR = ifelse(ZOE == 2, "~'   '", note.pR), # if ZOE==2, no annotation.
           key4 = species %in% {key.bact4 %>% gsub(".*s__", "", .) %>% gsub("_", " ", .)},
-          # q-value based label
-          # label = sprintf("%s%s%s~(%s~','~%s)%s",
-          #                 ifelse(key4, "underline(", ""), gsub(" ", "~", species), ifelse(key4, ")", ""),
-          #                 lm.q.D %>% signif2(as.char = T),
-          #                 lm.q.R %>% signif2(as.char = T), 
-          #                 note)) %>% 
           label = sprintf("%s%s%s~%s/%s",
                           ifelse(key4, "underline(", ""), gsub(" ", "~", species), ifelse(key4, ")", ""),
                           note.p, note.pR)) %>% 

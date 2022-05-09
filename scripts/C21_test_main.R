@@ -83,30 +83,6 @@
         
         saveRDS(result, output.nm.final)
         
-              
-        ## 3. Histograms
-        # Histogram (p, adj.p) for screened taxa
-        title.tmp <- paste0("LM (log2(", DRNA, " ", Unit, " + ", 
-                            round(dat$epsilon[DR.no],2) , ") ~ \n  ",
-                            model1[3] %>% as.character, 
-                            "\n  (total ", dat$screen$stat["use"], " ", type.name, " tested)")
-        title.tmp <- gsub("phenotype", pheno, title.tmp)
-        bwth = ifelse(length(result$pval[,1]) <= 100, 0.05, 0.01)
-        data.frame(p = result$pval[, "phenotype"] %>% as.vector %>% unlist) %>% 
-          ggplot(aes(p)) + geom_histogram(binwidth = bwth) + xlab("p-values") + 
-          scale_x_continuous(breaks = seq(0, 1, by=0.05)) + theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-          ggtitle(paste0("p-values of ", title.tmp)) +
-          # ggtitle(paste0("p-value histogram of the LN tests")) +
-          theme_bw()
-        ggsave(hist.nm.p)
-        
-        data.frame(p.BH = result$pval.adj$min) %>% 
-          ggplot(aes(p.BH)) + geom_histogram(binwidth = bwth) +  xlim(c(-0.05,1.05)) + xlab("q-values") + 
-          scale_x_continuous(breaks = seq(0, 1, by=0.05)) + theme(axis.text.x = element_text(angle = 60, hjust = 1)) +
-          # ggtitle(paste0("Adjusted p-values of ", title.tmp)) +
-          ggtitle(paste0("Adjusted p-value histogram of the LN tests")) +
-          theme_bw()
-        ggsave(hist.nm.padj)
       }
     }
   }
