@@ -1,0 +1,141 @@
+### C51_heatmap.R
+### Author: Bridget Lin
+### Modified by: Hunyong Cho
+
+
+### 0. library and data
+### 0.1 library
+  library(dplyr)
+  library(pheatmap)
+  library(gridExtra)
+  source("scripts/F_generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
+
+### 0.2 data
+  .initialize(type = "bact", ZOE = 2, DR.no = 1, pheno = "microt3cb",
+              test = "LN", screen = TRUE, prev.threshold = 0.1, 
+              avg.detect = 0.00001, detect.rel.abund = TRUE, nrm = TRUE,
+              bracken = TRUE, humann = 2,
+              screen.among.tested.DNAs = FALSE)
+  
+  n.taxa = dim(dat$otu)[1]
+  health = dat$meta$micro_t3c_b == 0
+  n.subj0 = sum(health) # 190
+  n.subj1 = sum(!health) # 110
+  
+### 0.3 the 16 sig species (This is obtained from the C2x.R files)
+  key.bact16 = read.csv("output/ETable1_C2_coef_table_bracken.csv")$species
+  
+### 1. Residuals for DNA
+  
+  # 1.1 health
+  resid_D0 <- matrix(NA, n.subj0, n.taxa)
+  for(i in 1:n.taxa){
+    lm1 <- lm(log(dat$otu[i, health, 1] + 1) ~ dat$meta$batch.DNA[health] +dat$meta$agemo[health])
+    lm.resid <- resid(lm1)
+    resid_D0[, i] = lm.resid
+  }
+  # 1.2 disease
+  resid_D1 <- matrix(NA, n.subj1, n.taxa)
+  for(i in 1:n.taxa){
+    lm1 <- lm(log(dat$otu[i, !health, 1] + 1) ~ dat$meta$batch.DNA[!health] +dat$meta$agemo[!health])
+    lm.resid <- resid(lm1)
+    resid_D1[, i] = lm.resid
+  }
+
+  
+### 2. Residuals for RNA
+  included = dat$meta$exclusion == "included" # for RNA
+  healthR = health & included
+  diseaseR = !health & included
+  
+  # 2.1 health
+  resid_R0 <- matrix(NA, sum(healthR), n.taxa)
+  for(i in 1:n.taxa){
+    lm1 <- lm(log(dat$otu[i, healthR, 2] + 1) ~ dat$meta$batch.RNA[healthR] +dat$meta$agemo[healthR])
+    lm.resid <- resid(lm1)
+    resid_R0[, i] = lm.resid
+  }
+  # 2.2 disease
+  resid_R1 <- matrix(NA, sum(diseaseR), n.taxa)
+  for(i in 1:n.taxa){
+    lm1 <- lm(log(dat$otu[i, diseaseR, 2] + 1) ~ dat$meta$batch.RNA[diseaseR] +dat$meta$agemo[diseaseR])
+    lm.resid <- resid(lm1)
+    resid_R1[, i] = lm.resid
+  }
+
+
+
+### 3. Correlation matrices
+  
+  names_microb = dat$taxa$bacteria
+  cor_D0 <- cor(resid_D0[, names_microb %in% key.bact16])
+  cor_D1 <- cor(resid_D1[, names_microb %in% key.bact16])
+  cor_R0 <- cor(resid_R0[, names_microb %in% key.bact16 ])
+  cor_R1 <- cor(resid_R1[, names_microb %in% key.bact16 ])
+  
+  rownames(cor_D0) <- colnames(cor_D0) <- colnames(cor_D1) <- rownames(cor_D1) <- 
+    rownames(cor_R0) <- colnames(cor_R0) <- colnames(cor_R1) <- rownames(cor_R1) <- 
+    names_microb[names_microb %in% key.bact16]
+ 
+  # Consistent ordering between disease and health
+  order1 <- hclust(dist(cor_D0))$order
+  cor_D0 = cor_D0[order1, order1]
+  cor_D1 = cor_D1[order1, order1]
+  
+  order1 <- hclust(dist(cor_R0))$order
+  cor_R0 = cor_R0[order1, order1]
+  cor_R1 = cor_R1[order1, order1]
+  
+
+### 4. plots
+  graphicParams = 
+    expand.grid(DR = c("D", "R"), ecc = 0:1) %>% 
+    mutate(eccNm = ifelse(ecc, "yes", "no"), 
+           title = c("A", "C", "B", "D"),
+           label = sprintf("%sNA data, localized disease experience: %s", DR, eccNm),
+           fn = sprintf("figure/Fig3_%s%s.png", DR, ecc))
+  corList = list(cor_D0, cor_R0, cor_D1, cor_R1)
+
+  plotList = list()
+  # png("figure/Fig3_heatmap.png", width = 1400, height = 1400)
+  for (i in 1:4) {
+    # png(graphicParams$fn[i], width = 650, height = 600)
+    plotList[[i]] = 
+      pheatmap(corList[[i]], 
+               main = graphicParams$label[i],
+               breaks=seq(-1, 1, by = 0.02), cluster_rows = F, cluster_cols = F,
+               treeheight_row = 0, treeheight_col = 0, fontsize = 12)[[4]]
+    # dev.off()
+  }
+  plotAll <- grid.arrange(arrangeGrob(grobs= plotList, ncol=2, labels = c("A", "C", "B", "D")))
+  ggsave("figure/Fig3_heatmap.png", plotAll, width = 20, height = 20)
+
+  
+  ## difference in correlation
+  cor_diff = cor_R0 - cor_R1
+  for (i in 1:16) cor_diff[i, i] = NA
+  
+  # shift and p-values
+  cor_diff_stat = 
+    data.frame(
+      species = colnames(cor_diff),
+      diff = apply(cor_diff, 1, mean, na.rm = TRUE),
+      pval = apply(cor_diff, 1, function(x) t.test(x)$p.value)
+    ) %>% print
+  
+  # histogram
+  index.mutans = which("Streptococcus mutans" == colnames(cor_diff))
+  index.sputigena = which("Selenomonas sputigena" == colnames(cor_diff))
+  cor.diff = 
+    data.frame(`Streptococcus mutans` = cor_diff[index.mutans, -index.mutans],
+               `Selenomonas sputigena` = cor_diff[index.sputigena, -index.sputigena]) 
+  cor.diff %>% 
+    tidyr::gather(key = species, value = diff_in_cor) %>% 
+    ggplot() + 
+    geom_histogram(aes(diff_in_cor, fill = species), binwidth = 0.05) + 
+    geom_vline(xintercept = 0, col = "black") +
+    facet_grid(~ species) + guides(fill = "none") +
+    theme_bw() + ylab ("Frequency") + 
+    xlab("Pearson correlation coefficients difference\nRNA data, localized disease experience: no vs. yes")
+  ggsave("figure/Fig3_EF_histogram.png")
+    

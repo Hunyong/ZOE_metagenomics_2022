@@ -80,24 +80,24 @@ typeDRNA <- function(type = c("path", "gene", "bact", "pathbact", "genebact",
   if (!bracken) {
     if (type == "path") {
       dat.file <- sprintf("Data-processed/data.%spath.marginal.DRNA.%s.rds", humann3., phase)
-      type <- "path";       Unit <- "counts"; type.name <- "pathways"
+      Type <- "path";       Unit <- "counts"; type.name <- "pathways"
     } else if (type %in% c("gene", "geneRPK")) {
       dat.file <- sprintf("Data-processed/data.%sgeneRPK.marginal.DRNA.%s.rds", humann3., phase)
-      type <- "geneRPK";    Unit <- "RPKs"; type.name <- "gene families"
+      Type <- "geneRPK";    Unit <- "RPKs"; type.name <- "gene families"
     } else if (type %in% c("bact", "bactRPK")) {
       dat.file <- sprintf("Data-processed/data.%sbactRPK.marginal.DRNA.%s.rds", humann3., phase)
-      type <- "bactRPK";    Unit <- "RPKs"; type.name <- "species"
+      Type <- "bactRPK";    Unit <- "RPKs"; type.name <- "species"
     } else if (type %in% c("genebact", "genebactRPK")) {
       dat.file <- sprintf("Data-processed/data.%sgeneRPK.joint.DRNA.%s.rds", humann3., phase)
-      type <- "genebactRPK";    Unit <- "RPKs"; type.name <- "gene-species"
+      Type <- "genebactRPK";    Unit <- "RPKs"; type.name <- "gene-species"
     } else if (type == "pathbact") {
       dat.file <- sprintf("Data-processed/data.%spath.joint.DRNA.%s.rds", humann3., phase)
-      type <- "pathbact";    Unit <- "counts"; type.name <- "path-species"
+      Type <- "pathbact";    Unit <- "counts"; type.name <- "path-species"
     } else stop("type is not correct.")
   } else {
     if (type == "bact") {
       dat.file <- sprintf("Data-processed/data.bracken2.full.DRNA.%s.rds", phase)
-      type <- "bact";       Unit <- "counts"; type.name <- "species"
+      Type <- "bact";       Unit <- "counts"; type.name <- "species"
     } else stop("type is not correct.")
   }
   if (withVirus) {dat.file <- gsub("Data-processed", "Data-processed-withVirus", dat.file)}
@@ -107,10 +107,10 @@ typeDRNA <- function(type = c("path", "gene", "bact", "pathbact", "genebact",
     Unit <- gsub("^counts", "normalized counts (M/sum)", Unit)
     # Unit <- gsub("^reads", "normalized reads (M/sum)", Unit)
   }
-  cat("type: ", type, "\n")
+  cat("Type: ", Type, "\n")
   cat("DRNA: ", DR.no, ", ", if (is.null(DR.no)) "DRNA not selected." else DRNA, "\n")
   cat("file to read: ", dat.file, "\n")
-  list(type = type, DR.no = DR.no, DRNA = DRNA, batch = batch, reads = reads,
+  list(Type = Type, DR.no = DR.no, DRNA = DRNA, batch = batch, reads = reads,
        type.name = type.name,
        dat.file = dat.file, Unit = Unit, abundance = abundance, withVirus = withVirus)
 }
@@ -219,11 +219,8 @@ typePheno <- function(pheno) {
   dat$meta$pheno <<- unlist(metadata) ## added Sep 9, 2020
 }
 
-#' @examples 
-#' INITIALIZE()
-#' 
-#' @param {type, DR.no, ZOE, nrm}
-.initialize <- function(test = c("none", "LN"), add.epsilon = FALSE, 
+.initialize <- function(type, ZOE, DR.no, pheno,
+                        test = c("none", "LN"), add.epsilon = FALSE, 
                         filter = c("both", "subjects only", "taxa only", "none"),
                         screen = TRUE, pheno.as.factor = NULL, nrmScale = NULL,
                         prev.threshold = 0.1, nrm = TRUE,
@@ -244,9 +241,9 @@ typePheno <- function(pheno) {
     pheno.as.factor = if (test == "KW") TRUE else FALSE
   }
   
-  ts   <-  typeDRNA(type = type1, DR.no = DR.no, ZOE = ZOE, withVirus = FALSE, normalize = nrm,
+  ts   <-  typeDRNA(type = type, DR.no = DR.no, ZOE = ZOE, withVirus = FALSE, normalize = nrm,
                     bracken = bracken, humann = humann)
-  type <<- ts$type; dat.file <<- ts$dat.file;    batch <<- ts$batch;    DRNA <<- ts$DRNA; 
+  Type <<- ts$Type; dat.file <<- ts$dat.file;    batch <<- ts$batch;    DRNA <<- ts$DRNA; 
   reads <<- ts$reads
   Unit <<- ts$Unit; abundance <<- ts$abundance;  type.name <<- ts$type.name
   dat  <<- readRDS(dat.file)
@@ -254,10 +251,12 @@ typePheno <- function(pheno) {
   ### filtering
   virus.taxa <<- dat$taxa[grep(virus.keyword, dat$taxa[,1]), 1] %>% as.character
   dim.before.filter.subject = dim(dat$otu)
-  if (filter_subjects)
-    dat <<- dat %>%  # excluding specific taxa and samples
-      pick.cols(col.index = if (DR.no==1) sample.exclude else sample.exclude.RNA, 
-                exclude = TRUE, otu.only = FALSE)    #pick.* in F00.00.generic.R
+  if (filter_subjects) {
+    exclude.subj = if (DR.no==1) sample.exclude else sample.exclude.RNA
+    if (length(exclude.subj) > 0)
+      dat <<- dat %>%  # excluding specific taxa and samples
+        pick.cols(col.index = exclude.subj, exclude = TRUE, otu.only = FALSE)
+  }
   dim.after.filter.subject = dim(dat$otu)
   if (filter_taxa)
     dat <<- dat %>%
@@ -288,25 +287,19 @@ typePheno <- function(pheno) {
   
   if (nrm) dat <<- normalize(dat, scale = nrmScale) # nrmScale = 1e+6
   if (screen & !nrm & detect.rel.abund) stop("normalization is not done, so the abundance screening cannot be done by the relative abundance.")
-  dat$meta[, c("ST.DNA", "ST.RNA")] <<- dat$otu %>% apply(2:3, sum)
-  
-  
-  dat$meta$caries   <<- as.factor(ifelse(dat$meta[["cariesfree"]] == "1", "caries-free", "caries"))
-  dat$meta$ecc      <<-  factor(c("healthy", "restored", "caries")[as.numeric(as.character(dat$meta[["ECC"]]))+1], levels = c("healthy", "restored", "caries"))
+  dat$meta[, c("ST.DNA", "ST.RNA")] <<- dat$otu %>% apply(2:3, sum, na.rm = TRUE)
   
   # check congruence of ids
-  cat("congruence of ids: ", all(dat$otu %>% colnames %>% as.numeric() == dat$meta$id), "\n")
+  cat("congruence of ids: ", all(dat$otu %>% colnames == dat$meta$id), "\n")
   
   ### Screening
   ############################################################################################
   ## 1.1 regularization: adding epsilon for log transformation, screening out
   # before screening, 1. find epsilon (min positive value). 2. Then screen out. 3. Add the epsilon
   
-  index.parallel        <<- NULL
-  
   ## screening first! then epsilon addition
   if (is.null(avg.detect)) {
-    avg.detect = switch(type, bactRPK = 2, path = 2, geneRPK = 2/10, 
+    avg.detect = switch(Type, bactRPK = 2, path = 2, geneRPK = 2/10, 
                         genebactRPK = 2/10, pathbact = 2/10,
                         bact = 2, gene = 2/10, genebact = 2/10)
     warning(sprintf("avg.detect is not specified. avg.detect is set as %0.2f", avg.detect))
@@ -342,7 +335,7 @@ typePheno <- function(pheno) {
                                              ifelse (humann == 2, "Humann2", "Humann3")),
                           ZOE = ZOE,
                           DRNA = DRNA,
-                          type = type,
+                          type = Type,
                           taxa.level = "species",
                           normalize = nrm,
                           nrmScale = if (!is.null(nrmScale)) nrmScale else NA,
@@ -366,15 +359,15 @@ typePheno <- function(pheno) {
   
   n.taxa    <<- dim(dat$taxa)[1]
   
-  if (filter_subjects) {
-    # removing NA samples
-    complete <- (!is.na(dat$meta$cariesfree) & !is.na(dat$meta$cariesfree))
-    if (sum(!complete) > 0) {
-      dat$otu <- dat$otu[, complete, ]
-      dat$meta <- dat$meta[complete, ]
-    }
-  }
-  # rm(metadata)
+  # if (filter_subjects) {
+  #   # removing NA samples
+  #   complete <- (!is.na(dat$meta$cariesfree) & !is.na(dat$meta$cariesfree))
+  #   if (sum(!complete) > 0) {
+  #     dat$otu <- dat$otu[, complete, ]
+  #     dat$meta <- dat$meta[complete, ]
+  #   }
+  # }
+  # # rm(metadata)
   
   #other phenotypes
   if (ZOE == 2) {
@@ -384,7 +377,7 @@ typePheno <- function(pheno) {
     dat$meta$race <<- race
     race <<- race
   } else {
-    race <<- dat$meta$race
+    race <<- dat$meta$race <<- dat$meta$race %>% as.factor
   }
   
   ## CDR (cellular detection rate. Before adding an epsilon.)
@@ -400,10 +393,8 @@ typePheno <- function(pheno) {
                          phenotype = metadata  %>% unlist %>% 
                            {if (!pheno.as.factor & pheno == "CF") {as.numeric(.) - 1} else {.}}, 
                          batcheffect = dat$meta[[batch]],
-                         reads = dat$meta[[reads]],
                          cdr  = cdr,
                          race = race,
-                         race2 = if ("race2" %in% names(dat$meta)) dat$meta$race2 else NA,
                          agemo = dat$meta$agemo)
 }
 
@@ -482,15 +473,9 @@ signif2 = function(x, digits = 2, as.char = FALSE) {
   virus.keyword <- ".*(virus|virid|viroid|phage).*"
   
   # exclusion (meta): pilot data (2016) and very low-expressed samples
-  sample.exclude <- c("311", "321", "335", "395", "424", "455", "478", "519", "536", "420", "352",
-                      "10083", "12623")
-  sample.exclude.RNA <- c(sample.exclude, "11210", "11259", "11790")
-      # alternatively,  
-      if (FALSE) {
-        sample.exclude <- dat$meta$id[dat$meta$batch.RNA == "160707"]
-        sample.exclude <- c(sample.exclude, c("420", "352", "10083", "12623"))
-      }
-  
+  sample.exclude <- c()
+  sample.exclude.RNA <- c(sample.exclude, "subj00000045", "subj000000A7", "subj0000012A")
+
 ##### GRAPHICAL CONSTANTS and CONSTANT FUNCTIONS
   basePlot <- function(textsize = 16, titlesize = 19) {
     theme(plot.title = element_text(size=titlesize), 

@@ -1,19 +1,16 @@
 ### C31_pathway_top_expression.R
 ### Author: Hunyong Cho
 ### Identify the top expressed pathways (free the context of ECC)
-
+### input: "output/ETable1_C2_coef_table_bracken.csv"
+### output: some intermediate outputs: 
+###       output/C31_pathway_composition_humann3_RNA_sigTaxa16_Marginal.rds, 
+###       output/C31_pathway_top30_humann3_RNA_sigTaxa16_Marginal.csv
 
 ### 0.1 library
-  source("scripts/F.generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
-  library(ggplot2); library(ggrepel)
+  library(dplyr)
+  source("scripts/F_generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
   
 ### 0.2 parameters
-  DR.no = 2 ;  ZOE <- 2; pheno <- "t3c"; index <- "";
-  model.nm = "cov"
-  bracken = FALSE   # bracken = FALSE  for pathbact !!!!
-  humann = 3       
-  nrm = TRUE #normalization
-  threshold.pval = 0.10
   
   
 ### 1. Top pathway expressions
@@ -23,34 +20,14 @@
                              rank.overall  = total$otu[,,2] %>% apply(1, sum, na.rm = TRUE) %>% "*"(-1) %>% rank)
   
   # The final list of 16 species.
-  key.bact16 = c("g__Prevotella.s__Prevotella_salivae",
-                 "g__Prevotella.s__Prevotella_oulorum",
-                 "g__Prevotella.s__Prevotella_melaninogenica",
-                 "g__Prevotella.s__Prevotella_sp_oral_taxon_306",
-                 "g__Prevotella.s__Prevotella_veroralis",
-                 "g__Streptococcus.s__Streptococcus_mutans",
-                 "g__Selenomonas.s__Selenomonas_sputigena",
-                 "g__Leptotrichia.s__Leptotrichia_wadei",
-                 "g__Leptotrichia.s__Leptotrichia_sp_oral_taxon_847",
-                 "g__Leptotrichia.s__Leptotrichia_sp_oral_taxon_223",
-                 "g__Leptotrichia.s__Leptotrichia_sp_oral_taxon_498",
-                 "g__Lachnoanaerobaculum.s__Lachnoanaerobaculum_saburreum",
-                 "g__Lachnospiraceae.s__Lachnospiraceae_bacterium_oral_taxon_082",
-                 "g__Veillonella.s__Veillonella_atypica",
-                 "g__Stomatobaculum.s__Stomatobaculum_longum",
-                 "g__Centipeda.s__Centipeda_periodontii"
-  )
-  sigTaxa.nm16  = "sigTaxa16" 
-  
-  key.bact = key.bact16
-  sigTaxa.nm = sigTaxa.nm16
+  key.bact16 = read.csv("output/ETable1_C2_coef_table_bracken.csv")$species
   
   ### path (marginal)
-  type1 =  "path"
-  .initialize(test = "none", add.epsilon = FALSE, screen = TRUE, nrmScale = 400000,
-              prev.threshold = 0.1,  avg.detect = 0, detect.rel.abund = TRUE, 
-              bracken = bracken, humann = humann,        ### added March 24, 2021
-              screen.among.tested.DNAs = TRUE)
+  .initialize(type = "path", ZOE = 2, DR.no = 2, pheno = "t3c",
+              bracken = FALSE, humann = 3,
+              test = "none", add.epsilon = FALSE, screen = TRUE, 
+              nrm = TRUE, nrmScale = 400000, # original scale 383K
+              prev.threshold = 0.1,  avg.detect = 0, detect.rel.abund = TRUE)
   
   marginal = 
     data.frame(path = dat$otu %>% rownames,
@@ -62,12 +39,11 @@
   
   
   ### pathbact (joint)
-  type1 =  "pathbact"
-  .initialize(test = "none", add.epsilon = FALSE, screen = TRUE, nrmScale = 3000000,
-              prev.threshold = 0.1, avg.detect = 0, detect.rel.abund = TRUE, 
-              bracken = bracken, humann = humann,        ### added March 24, 2021
-              screen.among.tested.DNAs = TRUE)
-  
+  .initialize(type = "pathbact", ZOE = 2, DR.no = 2, pheno = "t3c",
+              bracken = FALSE, humann = 3,
+              test = "none", add.epsilon = FALSE, screen = TRUE, 
+              nrm = TRUE, nrmScale = 3000000, # original scale 3.3M
+              prev.threshold = 0.1, avg.detect = 0, detect.rel.abund = TRUE)
   
   tmp = 
     data.frame(path = dat$otu %>% rownames %>% gsub(" .*", "", .),
@@ -91,13 +67,13 @@
   tab = tab[order(-tab[, "(total)"]), ]  # sorting by the total expression.
   
   
-  key.bact.tidy =
-    key.bact %>% gsub(".*\\.s__", "", .) %>% gsub("_", " ", .) %>%
+  key.bact16b =
+    key.bact16 %>%
     {paste0(substr(., 1, 3), gsub("([^ ]*) ?(.*)", ". \\2", .))} %>% sort
-  key.bact.tidy.tab = key.bact.tidy[key.bact.tidy %in% colnames(tab)]
+  key.bact16.tab = key.bact16b[key.bact16b %in% colnames(tab)]
   
   
-  ### 1. tab, tab2: top expressed pathways    
+  ### top expressed pathways    
   tab2 = 
     tab %>% 
     as.data.frame() %>% 
@@ -106,11 +82,11 @@
               total = `(total)`,
               unclassified = `(unclassified). `,
               `unclassified (%)` = round(unclassified / total * 100, 1),
-              `key species (#)`  = apply(tab[, key.bact.tidy.tab], 1, sum),
+              `key species (#)`  = apply(tab[, key.bact16.tab], 1, sum),
               `key species (%)` = round(`key species (#)`/total * 100, 1),
               `total (#)` = apply(tab[, -1], 1, function(x) sum(x > 0)),
-              `key species (#)` = apply(tab[, key.bact.tidy.tab], 1,  function(x) sum(x > 0)),
-              `key species names` = apply(tab[, key.bact.tidy.tab], 1, function(x) paste0(key.bact.tidy.tab[x > 0], collapse = ", ")),
+              `key species (#)` = apply(tab[, key.bact16.tab], 1,  function(x) sum(x > 0)),
+              `key species names` = apply(tab[, key.bact16.tab], 1, function(x) paste0(key.bact16.tab[x > 0], collapse = ", ")),
               `top 1 species` = apply(tab[, -1], 1, function(x) spec[-x == sort(-x)[1]]),
               `top 2 species` = apply(tab[, -1], 1, function(x) ifelse(sort(-x)[2] == 0, "", spec[-x == sort(-x)[2]])),
               `top 3 species` = apply(tab[, -1], 1, function(x) ifelse(sort(-x)[3] == 0, "", spec[-x == sort(-x)[3]]))) %>% 
@@ -122,7 +98,7 @@
               `# key species` = `key species (#)`,
               `top 3 species` = paste0(`top 1 species`, ", ", `top 2 species`, ", ", `top 3 species`)) %>% 
     left_join(total.ranking)
-  saveRDS(tab2, sprintf("output/C31_pathway_composition_humann%d_%s_%sMarginal.rds", humann, "RNA", sigTaxa.nm))
+  saveRDS(tab2, sprintf("output/C31_pathway_composition_humann3_RNA_sigTaxa16_Marginal.rds"))
   
   
   # tab2b = Top 100
@@ -130,7 +106,7 @@
   tab2b[101, ] = NA  
   tab2b[101, "#"] = 0
   tab2b[101, "pathway"] = paste0("Total ", dim(tab2)[1], " pathways")
-  tab2b[101, "key species"] = paste0(length(key.bact), "Key species: ", paste(key.bact.tidy, collapse = ", "))
+  tab2b[101, "key species"] = paste0(length(key.bact16), "Key species: ", paste(key.bact16, collapse = ", "))
   
   # tab2c = sorted by sig species. Then top 30
   tab2c = 
@@ -139,6 +115,6 @@
     filter(1:n()<=30) %>% 
     print
 
-  write.csv(tab2c, sprintf("output/C31_pathway_top30_humann%d_%s_%sMarginal.csv", humann, "RNA", sigTaxa.nm), row.names = F)
+  write.csv(tab2c, sprintf("output/C31_pathway_top30_humann3_RNA_sigTaxa16_Marginal.csv"), row.names = F)
 
   

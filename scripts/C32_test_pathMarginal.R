@@ -2,92 +2,56 @@
 ### Author: Hunyong Cho
 ### Identify the pathways with significant association with the ECC 
 ###   among the pathways that contain the 16 significant species.
+### output: E. Table 2, E. Fig 2
 
 ### 0.1 library
-  library(ggrepel)
-  library(dplyr)
-  library(tibble)
-  source("scripts/F.aesthetics.R")  # For color pallette
-  source("scripts/F.generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
+  library(dplyr); library(tibble)
+  library(ggplot2); library(ggrepel)
+  source("scripts/F_aesthetics.R")  # For color pallette
+  source("scripts/F_generic.R")  # typeDRNA(), sample.exclude, taxa.exclude
 
-
-  type1 =  "path"
+  type =  "path"
   DR.no = 2 ;  ZOE <- 2;
   model.nm = "cov"
   bracken = FALSE
   humann = 3     
   nrm = TRUE #normalization
-  threshold.pval = 0.10
   
   # The final list of 16 species.
-  key.bact16 = c("g__Prevotella.s__Prevotella_salivae",
-                 "g__Prevotella.s__Prevotella_oulorum",
-                 "g__Prevotella.s__Prevotella_melaninogenica",
-                 "g__Prevotella.s__Prevotella_sp_oral_taxon_306",
-                 "g__Prevotella.s__Prevotella_veroralis",
-                 "g__Streptococcus.s__Streptococcus_mutans",
-                 "g__Selenomonas.s__Selenomonas_sputigena",
-                 "g__Leptotrichia.s__Leptotrichia_wadei",
-                 "g__Leptotrichia.s__Leptotrichia_sp_oral_taxon_847",
-                 "g__Leptotrichia.s__Leptotrichia_sp_oral_taxon_223",
-                 "g__Leptotrichia.s__Leptotrichia_sp_oral_taxon_498",
-                 "g__Lachnoanaerobaculum.s__Lachnoanaerobaculum_saburreum",
-                 "g__Lachnospiraceae.s__Lachnospiraceae_bacterium_oral_taxon_082",
-                 "g__Veillonella.s__Veillonella_atypica",
-                 "g__Stomatobaculum.s__Stomatobaculum_longum",
-                 "g__Centipeda.s__Centipeda_periodontii"
-  )
-  sigTaxa.nm16  = "sigTaxa16" 
+  key.bact16 = read.csv("output/ETable1_C2_coef_table_bracken.csv")$species
   
-  key.bact = key.bact16
-  sigTaxa.nm = sigTaxa.nm16
-
   
 # from C31_path_top.R
-  tab2b = readRDS(sprintf("output/C31_pathway_composition_humann%d_%s_%sMarginal.rds", humann, "RNA", sigTaxa.nm))
-  tab2c = read.csv(sprintf("output/C31_pathway_top30_humann%d_%s_%sMarginal.csv", humann, "RNA", sigTaxa.nm))
+  tab2b = readRDS(sprintf("output/C31_pathway_composition_humann3_RNA_sigTaxa16_Marginal.rds"))
+  tab2c = read.csv(sprintf("output/C31_pathway_top30_humann3_RNA_sigTaxa16_Marginal.csv"))
   path.with.key.bact = tab2c$pathway
 
   ### 1. test of marginal pathways.
   for (pheno in c("t3c", "microt3cb")) {
-    print("1. LM - with covariates")
-    .initialize(test = "LN", add.epsilon = TRUE, screen = TRUE, prev.threshold = 0.1, 
-                avg.detect = 1e-8, nrmScale = 4e+5,
-                detect.rel.abund = TRUE,
-                bracken = bracken, humann = humann,
-                screen.among.tested.DNAs = TRUE)
+    .initialize(type = "path", ZOE = 2, DR.no = 2, pheno = pheno,
+                bracken = FALSE, humann = 3,
+                test = "LN", add.epsilon = TRUE, screen = TRUE, 
+                nrm = TRUE, nrmScale = 400000, # original scale 383K
+                prev.threshold = 0.1,  avg.detect = 1e-8, detect.rel.abund = TRUE)
     
+    model1 = logUnit ~ batcheffect + phenotype + agemo + race
     
-    #type1 = "bact"; type = type1; model.nm = "base"; pheno = "CF"; INITIALIZE(test = "LN", add.epsilon = TRUE); 
-    if (ZOE == 1 & all(is.na(dat.reg$race2))) dat.reg$race2 = NULL
-    cat(model.nm, " ", DR.no, "", pheno,"\n")
-    
-    binaryDNA = ifelse(DR.no == 2, "+ binaryDNA", "")
-    model1 = paste0("logUnit ~ batcheffect + phenotype", binaryDNA, " + agemo + race")
-    # if there is no batches, drop the term.
-    if (na.omit(dat.reg)$batcheffect %>% unique %>% length %>% "<"(2)) {
-      model1 <- gsub("batcheffect \\+ ", "", model1) 
-    }
-    model1 %<>% as.formula
-    
-    #print(model1)        
-    dat.reg$logUnit = log2(as.numeric(dat$otu[1, , DR.no]))
-    full <- lm(model1, data = dat.reg %>% na.omit)
+    dat.reg$logUnit = log2(as.numeric(dat$otu[1, , 2]))
+    full <- lm(model1, data = dat.reg)
     nm <- names(full$coefficients)
     result.coef <- result.pval <- 
       matrix(NA, nrow = length(path.with.key.bact), ncol = length(nm), 
              dimnames = list(path.with.key.bact, nm)) %>% 
       as.data.frame()
     
-    nm.common = paste0(if (bracken) "bracken_" else if (humann == 3) "humann3_" else "", 
-                       "cov-", sigTaxa.nm, "Marginal_", type, "-", DRNA, "-", pheno, "-ZOE", ZOE)
+    nm.common = sprintf("humann3_sigTaxa16_Marginal_path-RNA-%s-ZOE2", pheno)
     output.nm.final = paste0("output/C32_LM_", nm.common,  ".rds")
     
     ## 2.1 testing!
     for (i in path.with.key.bact) {  ### testing only important bacterias
       cat(i,  "  ")
-      dat.reg$Unit = as.numeric(dat$otu[i, , DR.no])
-      dat.reg$logUnit = log2(as.numeric(dat$otu[i, , DR.no]))
+      dat.reg$Unit = as.numeric(dat$otu[i, , 2])
+      dat.reg$logUnit = log2(as.numeric(dat$otu[i, , 2]))
       dat.reg$binaryDNA = ifelse(as.numeric(dat$otu[i, , 1]), 1, 0)
       full <- lm(model1, data = dat.reg)
       full.summary <- full %>% summary %>% coef
@@ -110,7 +74,7 @@
     # BH adjustment (and take the min of both ECC1 and 2)
     result$pval.adj[, "phenotype", drop = FALSE] %>% 
       apply(1, min, na.rm = TRUE) -> result$pval.adj$min   #for CF, apply(1, min) is just identity
-    result$sigFeature = path.with.key.bact[result$pval.adj$min < threshold.pval]
+    result$sigFeature = path.with.key.bact[result$pval.adj$min < 0.5]
     
     saveRDS(result, output.nm.final)
     
@@ -126,14 +90,14 @@
   DR.test = "RNA"
   
   pheno.test = "t3c"
-  result = readRDS(sprintf("output/C32_LM_humann3_cov-%sMarginal_path-%s-%s-ZOE2.rds", sigTaxa.nm, DR.test, pheno.test))
+  result = readRDS(sprintf("output/C32_LM_humann3_sigTaxa16_Marginal_path-%s-%s-ZOE2.rds", DR.test, pheno.test))
   result_t3c = tibble(pathway =  result$coef %>% rownames, 
                       coef.ind = result$coef$phenotype, 
                       p.ind = result$pval$phenotype,
                       q.ind = result$pval.adj$phenotype,
                       star.ind = ifelse(q.ind  <= 0.05, "*", "")) 
   pheno.test = "microt3cb"
-  result = readRDS(sprintf("output/C32_LM_humann3_cov-%sMarginal_path-%s-%s-ZOE2.rds", sigTaxa.nm, DR.test, pheno.test))
+  result = readRDS(sprintf("output/C32_LM_humann3_sigTaxa16_Marginal_path-%s-%s-ZOE2.rds", DR.test, pheno.test))
   result_mt3c = tibble(pathway =  result$coef %>% rownames, 
                        coef.loc = result$coef$phenotype, 
                        p.loc = result$pval$phenotype,
@@ -141,8 +105,13 @@
                        star.loc = ifelse(q.loc  <= 0.05, "*", "")) 
   tab3 =
     left_join(result_t3c, result_mt3c) %>% 
-    left_join(tab2c, .)
-  write.csv(tab3, sprintf("output/_C32_composition_in_path_humann%d_%s_%sMarginal.csv", humann, "RNA", sigTaxa.nm))
+    left_join(tab2c, .) %>% 
+    left_join(pth.names) %>% 
+    transmute(pathway, description = pathname, p = p.loc, beta = coef.loc, 
+              `expression rank` = rank.overall, 
+              `% sig species` = X..key.species, `sig species` = key.species) %>% 
+    arrange(p)
+  write.csv(tab3, sprintf("output/ETable2_C32_composition_in_path_humann3_RNA_sigTaxa16_Marginal.csv"))
   
   tab2b %>% 
     left_join(result_mt3c) %>% 
@@ -178,5 +147,5 @@
                   y = `Log-normal model coefficient` + 0.003,
                   label = sprintf("#%d", rank.overall)),
               size = 3, col = "black")
-  ggsave(sprintf("figure/_C32_composition_in_path_humann%d_%s_%sMarginal.png", humann, "RNA", sigTaxa.nm),
+  ggsave(sprintf("figure/EFig2_C32_composition_in_path_humann3_RNA_sigTaxa16_Marginal.png"),
          width = 10, height = 6)

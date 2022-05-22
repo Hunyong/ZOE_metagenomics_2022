@@ -9,7 +9,16 @@ One the data are prepared in the following format, the C11, C21, C22, C31, C32, 
 
 
 # Data
-Data-processed includes the following collated datasets
+The `Data/` folder contains elements in `CDR_ZOEmicro_20220519.zip` in Carolina Digital Repository (https://cdr.lib.unc.edu/concern/data_sets/5d86p890x).  
+* `ZOE2_targeted_RNAseq/`  
+* `ZOE2_pilot_Bracken/`  
+* `ZOE2_main_Bracken/`
+* `ZOE2_h3_RNA_path/`
+* `data.outcome.ZOE2_pilot_20200527.xlsx`  
+* `data.outcome.ZOE2_main_20200527.xlsx`  
+
+# Data-processed  
+The `Data-processed` folder is obtained by implementing the `C01.R` code.  
 * `data.bracken2.full.DRNA.ZOE2.rds`  
 * `data.bracken2.full.DRNA.ZOE1.rds`  
 * `data.humann3.path.joint.DRNA.ZOE2.rds`   

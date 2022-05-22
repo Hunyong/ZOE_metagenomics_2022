@@ -4,7 +4,7 @@
 
 ### 0. library and preprocessing
   library(dplyr)
-  source("scripts/F.generic.R")
+  source("scripts/F_generic.R")
   dat = readRDS("Data-processed/data.geneRPK.full.DRNA.ZOE2.RNASEQ.rds")
   reads.gene = dat$reads[,, 2] %>% apply(1, mean)
   dat$reads[,, 2] %>% apply(2, sum) %>% mean %>% print
@@ -41,7 +41,7 @@
 
 
 ### 1. Main effects
-
+  outMainCombined = list()
   for (k in 1:4) {
     genes = list(geneSm, geneSs, genePs, geneLw)[[k]]
     rna.dat = list(rna.mutans, rna.sputigena, rna.salivae, rna.wadei)[[k]]
@@ -68,10 +68,20 @@
     outMain %>% arrange(qval) %>% write.csv(sprintf("output/C41_RNASeq_%s_lm_main.csv", nm))
     sig.genes = outMain %>% filter(qval <= 0.05) %>% "$"("gene")
     
+    outMainCombined[[k]] = outMain
   }
-
-
-
+  
+  # collating
+  outMainCombinedTab = 
+    Reduce(rbind, outMainCombined) %>% 
+    filter(qval <= 0.05) %>% 
+    transmute(Gene = gsub("^[a-zA-Z]+_", "", gene),
+              species = gsub("(^[a-zA-Z]+)_.*", "\\1", gene),
+              p = pval,
+              direction = ifelse(coef >= 0, "+", "-")) %>% 
+    arrange(desc(species), p)
+  outMainCombinedTab %>% write.csv("output/ETable3_C41_RNASeq_four_sepcies_lm_main.csv")
+  
 ### 2. Interaction effects
 
 
@@ -105,6 +115,6 @@
   outInteraction2[, "qval.Ss"] = p.adjust(outInteraction2[, "pval.Ss"], method = "BH")
   
   outInteraction2[outInteraction2$qval <= 0.05, "sig.interaction"] = "sig"
-  outInteraction2 = outInteraction2 %>% arrange(qval) 
+  outInteraction2 = outInteraction2 %>% arrange(pval) 
   # Extended Data Table 4
-  outInteraction2 %>% write.csv("output/C41_RNASeq_four_sepcies_lm_interaction.csv")
+  outInteraction2 %>% write.csv("output/ETable4_C41_RNASeq_four_sepcies_lm_interaction.csv")
