@@ -1,6 +1,7 @@
 ### C51_heatmap.R
 ### Author: Bridget Lin
 ### Modified by: Hunyong Cho
+### output: Figure 3  
 
 
 ### 0. library and data
@@ -77,29 +78,50 @@
     rownames(cor_R0) <- colnames(cor_R0) <- colnames(cor_R1) <- rownames(cor_R1) <- 
     names_microb[names_microb %in% key.bact16]
  
+  # removing the correlations of themselves
+  for (i in 1:16) {
+    cor_D0[i, i] = cor_D1[i, i] = cor_R0[i, i] = cor_R1[i, i] = NA
+  }
+  
+  # overall correlations
+  cor.overall = 
+    data.frame(`health in MTG`  = cor_D0 %>% apply(1, mean, na.rm = T),
+               `disease in MTG` = cor_D1 %>% apply(1, mean, na.rm = T),
+               `health in MTX` = cor_R0 %>% apply(1, mean, na.rm = T),
+               `disease in MTX` = cor_R1 %>% apply(1, mean, na.rm = T)) %>% 
+      mutate_all(function(x) round(x, 2)) 
+  cor.overall %>% View
+
+  
+### 4. plots
   # Consistent ordering between disease and health
   order1 <- hclust(dist(cor_D0))$order
-  cor_D0 = cor_D0[order1, order1]
-  cor_D1 = cor_D1[order1, order1]
+  cor_D0a = cor_D0[order1, order1]
+  cor_D1a = cor_D1[order1, order1]
+  rownames(cor_D0a) = 
+    sprintf("%s (%0.2f)", colnames(cor_D0), cor.overall[, 1])[order1]
+  rownames(cor_D1a) = 
+    sprintf("%s (%0.2f)", colnames(cor_D0), cor.overall[, 2])[order1]
   
-  order1 <- hclust(dist(cor_R0))$order
-  cor_R0 = cor_R0[order1, order1]
-  cor_R1 = cor_R1[order1, order1]
+  order2 <- hclust(dist(cor_R0))$order
+  cor_R0a = cor_R0[order2, order2]
+  cor_R1a = cor_R1[order2, order2]
+  rownames(cor_R0a) = 
+    sprintf("%s (%0.2f)", colnames(cor_R0), cor.overall[, 3])[order2]
+  rownames(cor_R1a) = 
+    sprintf("%s (%0.2f)", colnames(cor_R0), cor.overall[, 4])[order2]
   
-
-### 4. plots
+  
   graphicParams = 
-    expand.grid(DR = c("D", "R"), ecc = 0:1) %>% 
-    mutate(eccNm = ifelse(ecc, "yes", "no"), 
+    expand.grid(DR = c("MTG", "MTX"), ecc = 0:1) %>% 
+    mutate(eccNm = ifelse(ecc, "any ", "no "),
            title = c("A", "C", "B", "D"),
-           label = sprintf("%sNA data, localized disease experience: %s", DR, eccNm),
-           fn = sprintf("figure/Fig3_%s%s.png", DR, ecc))
-  corList = list(cor_D0, cor_R0, cor_D1, cor_R1)
+           label = sprintf("%s, %slocalized disease experience", DR, eccNm),
+           fn = sprintf("figure/Fig3_%s%s.pdf", DR, ecc))
+  corList = list(cor_D0a, cor_R0a, cor_D1a, cor_R1a)
 
   plotList = list()
-  # png("figure/Fig3_heatmap.png", width = 1400, height = 1400)
   for (i in 1:4) {
-    # png(graphicParams$fn[i], width = 650, height = 600)
     plotList[[i]] = 
       pheatmap(corList[[i]], 
                main = graphicParams$label[i],
@@ -108,34 +130,33 @@
     # dev.off()
   }
   plotAll <- grid.arrange(arrangeGrob(grobs= plotList, ncol=2, labels = c("A", "C", "B", "D")))
-  ggsave("figure/Fig3_heatmap.png", plotAll, width = 20, height = 20)
+  ggsave("figure/Fig3_heatmap.pdf", plotAll, width = 22, height = 20)
 
-  
-  ## difference in correlation
-  cor_diff = cor_R0 - cor_R1
-  for (i in 1:16) cor_diff[i, i] = NA
-  
-  # shift and p-values
-  cor_diff_stat = 
-    data.frame(
-      species = colnames(cor_diff),
-      diff = apply(cor_diff, 1, mean, na.rm = TRUE),
-      pval = apply(cor_diff, 1, function(x) t.test(x)$p.value)
-    ) %>% print
-  
-  # histogram
-  index.mutans = which("Streptococcus mutans" == colnames(cor_diff))
-  index.sputigena = which("Selenomonas sputigena" == colnames(cor_diff))
-  cor.diff = 
-    data.frame(`Streptococcus mutans` = cor_diff[index.mutans, -index.mutans],
-               `Selenomonas sputigena` = cor_diff[index.sputigena, -index.sputigena]) 
-  cor.diff %>% 
-    tidyr::gather(key = species, value = diff_in_cor) %>% 
-    ggplot() + 
-    geom_histogram(aes(diff_in_cor, fill = species), binwidth = 0.05) + 
-    geom_vline(xintercept = 0, col = "black") +
-    facet_grid(~ species) + guides(fill = "none") +
-    theme_bw() + ylab ("Frequency") + 
-    xlab("Pearson correlation coefficients difference\nRNA data, localized disease experience: no vs. yes")
-  ggsave("figure/Fig3_EF_histogram.png")
-    
+  # 
+  # ## difference in correlation
+  # cor_diff = cor_R0 - cor_R1
+  # for (i in 1:16) cor_diff[i, i] = NA
+  # 
+  # # shift and p-values
+  # cor_diff_stat = 
+  #   data.frame(
+  #     species = colnames(cor_diff),
+  #     diff = apply(cor_diff, 1, mean, na.rm = TRUE),
+  #     pval = apply(cor_diff, 1, function(x) t.test(x)$p.value)
+  #   ) %>% print
+  # 
+  # # histogram
+  # index.mutans = which("Streptococcus mutans" == colnames(cor_diff))
+  # index.sputigena = which("Selenomonas sputigena" == colnames(cor_diff))
+  # cor.diff = 
+  #   data.frame(`Streptococcus mutans` = cor_diff[index.mutans, -index.mutans],
+  #              `Selenomonas sputigena` = cor_diff[index.sputigena, -index.sputigena]) 
+  # cor.diff %>% 
+  #   tidyr::gather(key = species, value = diff_in_cor) %>% 
+  #   ggplot() + 
+  #   geom_histogram(aes(diff_in_cor, fill = species), binwidth = 0.05) + 
+  #   geom_vline(xintercept = 0, col = "black") +
+  #   facet_grid(~ species) + guides(fill = "none") +
+  #   theme_bw() + ylab ("Frequency") + 
+  #   xlab("Pearson correlation coefficients difference\nRNA data, localized disease experience: no vs. yes")
+  # ggsave("figure/Fig3_EF_histogram.png")
