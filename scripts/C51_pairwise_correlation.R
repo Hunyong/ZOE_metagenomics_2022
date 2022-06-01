@@ -131,32 +131,3 @@
   }
   plotAll <- grid.arrange(arrangeGrob(grobs= plotList, ncol=2, labels = c("A", "C", "B", "D")))
   ggsave("figure/Fig3_heatmap.pdf", plotAll, width = 22, height = 20)
-
-  # 
-  # ## difference in correlation
-  # cor_diff = cor_R0 - cor_R1
-  # for (i in 1:16) cor_diff[i, i] = NA
-  # 
-  # # shift and p-values
-  # cor_diff_stat = 
-  #   data.frame(
-  #     species = colnames(cor_diff),
-  #     diff = apply(cor_diff, 1, mean, na.rm = TRUE),
-  #     pval = apply(cor_diff, 1, function(x) t.test(x)$p.value)
-  #   ) %>% print
-  # 
-  # # histogram
-  # index.mutans = which("Streptococcus mutans" == colnames(cor_diff))
-  # index.sputigena = which("Selenomonas sputigena" == colnames(cor_diff))
-  # cor.diff = 
-  #   data.frame(`Streptococcus mutans` = cor_diff[index.mutans, -index.mutans],
-  #              `Selenomonas sputigena` = cor_diff[index.sputigena, -index.sputigena]) 
-  # cor.diff %>% 
-  #   tidyr::gather(key = species, value = diff_in_cor) %>% 
-  #   ggplot() + 
-  #   geom_histogram(aes(diff_in_cor, fill = species), binwidth = 0.05) + 
-  #   geom_vline(xintercept = 0, col = "black") +
-  #   facet_grid(~ species) + guides(fill = "none") +
-  #   theme_bw() + ylab ("Frequency") + 
-  #   xlab("Pearson correlation coefficients difference\nRNA data, localized disease experience: no vs. yes")
-  # ggsave("figure/Fig3_EF_histogram.png")
