@@ -116,13 +116,13 @@
   tab2b %>% 
     left_join(result_mt3c) %>% 
     left_join(pth.names) %>% 
-    mutate(pathway = ifelse(!is.na(pathname), sprintf("%s (%s)\U2002", pathway, pathname), pathway),
+    mutate(pathway = ifelse(!is.na(pathname), sprintf("%s (%s) ", pathway, pathname), pathway),
            `Expression level` = total,
            rank.overall = as.integer(rank.overall),
            `Log-normal model coefficient` = coef.loc,
            `% significant species` = `% key species`,
            `-log10 FDR-adjust p-values` = -log10(`q.loc`),
-           pway = sprintf("%s\n [%s]\U2002", pathway, `key species`)) %>% 
+           pway = sprintf("%s\n [%s] ", pathway, `key species`)) %>% 
     ggplot(aes(y = `Log-normal model coefficient`,
                x = `% significant species`,
                size = `-log10 FDR-adjust p-values`,
@@ -147,5 +147,5 @@
                   y = `Log-normal model coefficient` + 0.003,
                   label = sprintf("#%d", rank.overall)),
               size = 3, col = "black")
-  ggsave(sprintf("figure/EFig2_C32_composition_in_path_humann3_RNA_sigTaxa16_Marginal.png"),
+  ggsave(sprintf("figure/EFig2_C32_composition_in_path_humann3_RNA_sigTaxa16_Marginal.pdf"),
          width = 10, height = 6)

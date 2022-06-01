@@ -1,11 +1,13 @@
 # ZOE_metagenomics_2022  
-Pathobiont-mediated spatial structuring enhances biofilm virulence in childhood oral disease
+This is the analysis code for the paper "Pathobiont-mediated spatial structuring enhances 
+biofilm virulence in childhood oral disease" by Cho, Ren, Divaris, et al. (2022). 
+This code was prepared in the R computing language (R 4.1.2).  
+
 
 # Instruction
-`scripts` folder contains the R code for implementing the linear model fitting (C1.R), ...
-The `F-` files are the helper functions.
+`scripts` folder contains the R code. See ***scripts*** below.  
 
-One the data are prepared in the following format, the C11, C21, C22, C31, C32, C41, all ending with `.R`, can be run to obtain the desired outputs and figures. The leading numbers corresponds to the flow of the analyses.  
+Once the data are prepared in the following format using `C01--C03.R` files, the C11, C21, C22, C31, C32, C41, all ending with `.R`, can be run to obtain the desired outputs and figures. The leading numbers corresponds to the flow of the analyses. I.e., the latter numbers may depend on the earlier numbers, but not the other way around.    
 
 
 # Data
@@ -35,3 +37,12 @@ Each file is an R list object that contains `otu`, `meta`, `taxa`, where, in cas
 `data.humann3.path.joint.DRNA.ZOE2.rds` and `data.humann3.path.marginal.DRNA.ZOE2.rds` are same structured data for pathway-species combinations and marginal pathways processed according to HUMMANn 3 for ZOE 2.0 data. Each row of the pathway-species data is in the form of `(gene names) (species names)`.  
 
 `data.geneRPK.full.DRNA.ZOE2.RNASEQ.rds` is a same structured data for RNA sequencing data for the TOP 4 species for ZOE 2.0 data.
+
+# scripts   
+The scripts folder contains the R code files.  
+* `C11.R`: demographics (Extended Data Table 5).  
+* `C21--C23.R`: discovery and validation of the significant species (Extended Data Table and Figure 1, Figure 2).  
+* `C31--C32.R`: associated pathways identification (Extended Table and Figure 2).  
+* `C41.R`: associated gene identification (Extended Tables 3 and 4).  
+* `C51.R`: correlation analysis of the significant species  (Figure 3)  
+* The `F_.R` files are the helper functions.  

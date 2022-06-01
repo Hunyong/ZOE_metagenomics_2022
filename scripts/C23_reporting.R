@@ -71,7 +71,7 @@
     for (pheno in c("microt3cb", "t3c")) {
       plot.nm = paste0(DRNA, "_", pheno)
       output.nm.combined = paste0("output/C2_LM_bracken_", DRNA, "-", pheno, "-combined.rds")
-      fig.coef.nm.combined = gsub("output/(.*)\\.rds", "figure/\\1.png", output.nm.combined)
+      fig.coef.nm.combined = gsub("output/(.*)\\.rds", "figure/\\1.pdf", output.nm.combined)
       
       combined2 = 
         readRDS(output.nm.combined) %>% 
@@ -119,10 +119,10 @@
   coef.plot.legend = get_legend(coef.plot[[1]] + theme(legend.direction = "horizontal", legend.position = "bottom"))
   
   coef.plot.label = 
-    gsub("(.*NA)_(microt3cb)", "Localized caries experience, \\1", names(coef.plot)) %>% 
-    gsub("(.*NA)_(t3c)", "Person-level caries experience, \\1", .) %>% 
-    gsub(", DNA", ", metagenome", .) %>% 
-    gsub(", RNA", ", metatranscriptome", .)
+    gsub("(.*NA)_(microt3cb)", "localized caries experience, \\1", names(coef.plot)) %>% 
+    gsub("(.*NA)_(t3c)", "person-level caries experience, \\1", .) %>% 
+    gsub("(.*), DNA", "MTG, \\1", .) %>% 
+    gsub("(.*), RNA", "MTX, \\1", .)
   
   coef.plot.main = 
     plot_grid(plotlist = 
@@ -137,7 +137,7 @@
   p.final = 
     plot_grid(coef.plot.main, coef.plot.legend, ncol = 1, rel_heights = c(1, 0.05)) 
   
-  save_plot(paste0("figure/Fig2_C2_validation_DRNA_phenotype.png"), 
+  save_plot(paste0("figure/Fig2_C2_validation_DRNA_phenotype.pdf"), 
             p.final, base_height = 12, base_width = 12)
   
   
@@ -215,7 +215,7 @@
         scale_size_continuous(range = size.log.p) +
         scale_color_manual(values = col.genera) +
         geom_point() + 
-        guides(color = "none", size = guide_legend(title= "-log (FDR-adjusted p-value) in the metagenome sample")) +
+        guides(color = "none", size = guide_legend(title= "-log (FDR-adjusted p-value) in MTG")) +
         theme_bw() + theme(legend.position = "bottom") +
         xlab("log-normal model coefficient (metagenome)") +
         ylab("log-normal model coefficient (metatranscriptome)") + 
@@ -237,8 +237,8 @@
   DR.plot.label = 
     gsub("(ZOE[1-2])_(microt3cb)", "Localized caries experience, \\1", names(DR.plot)) %>% 
     gsub("(ZOE[1-2])_(t3c)", "Person-level caries experience, \\1", .) %>% 
-    gsub(", ZOE1", " in replication sample", .) %>% 
-    gsub(", ZOE2", " in discovery sample", .)
+    gsub(", ZOE1", " in the replication sample", .) %>% 
+    gsub(", ZOE2", " in the discovery sample", .)
   
   DR.plot.main = 
     plot_grid(plotlist = 
@@ -247,16 +247,16 @@
                     theme(legend.position="none", axis.title = element_blank()) +
                     ggtitle(DR.plot.label[x])), 
               nrow = 2, ncol = 2)+
-    draw_label("Log-normal model coefficient in the metagenome sample", 
+    draw_label("Log-normal model coefficient in MTG", 
                x=0.5, y=  0, vjust= 0.5, angle=  0) +
-    draw_label("Log-normal model coefficient in the metatranscriptome sample", 
+    draw_label("Log-normal model coefficient in MTX", 
                x=0, y=  0.5, vjust= 0, angle= 90) +
     theme(plot.margin = unit(c(1,0.5,0.5,0.5), "cm")) 
   
   p.final = 
     plot_grid(DR.plot.main, DR.plot.legend, ncol = 1, rel_heights = c(1, 0.05)) 
   
-  save_plot(paste0("figure/EFig1_C2_validation_study_phenotype.png"), 
+  save_plot(paste0("figure/EFig1_C2_validation_study_phenotype.pdf"), 
             p.final, base_height = 12, base_width = 12)
   
   

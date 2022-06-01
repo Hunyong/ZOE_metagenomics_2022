@@ -1,6 +1,7 @@
 ### C41 RNAseq_four_species.R
 ### Author: Hunyong Cho
 ### Identify the pathobiont genes for the four species.
+### output: E. Tables 3--4.  
 
 ### 0. library and preprocessing
   library(dplyr)

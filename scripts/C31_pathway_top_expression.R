@@ -36,14 +36,14 @@
                expr.mean = dat$otu[,,2] %>% apply(1, mean, na.rm = TRUE)) %>% 
     arrange(desc(expr.mean))
   
-  
+  dat$taxa$bacteria %>% gsub(".*\\.s__", "", .) %>% gsub("_", " ", .) %>% {which(. %in% key.bact16)} %>% {dat$taxa$path[.]} %>% unique %>% length
   
   ### pathbact (joint)
   .initialize(type = "pathbact", ZOE = 2, DR.no = 2, pheno = "t3c",
               bracken = FALSE, humann = 3,
               test = "none", add.epsilon = FALSE, screen = TRUE, 
               nrm = TRUE, nrmScale = 3000000, # original scale 3.3M
-              prev.threshold = 0.1, avg.detect = 0, detect.rel.abund = TRUE)
+              prev.threshold = 0, avg.detect = 0, detect.rel.abund = TRUE)
   
   tmp = 
     data.frame(path = dat$otu %>% rownames %>% gsub(" .*", "", .),
