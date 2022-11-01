@@ -171,12 +171,12 @@ typePheno <- function(pheno) {
                        CF = "caries", ecc = "ecc", t3c = "t3c", t6c = "t6c",
                        t3cb = c("meta_t3c_b", "micro_t3c_b"), t3 = "t3", t6 = "t6",
                        microt3b = "micro_t3_b", microt3cb = "micro_t3c_b",
-                       lca1 = "ecc_type", lca2 = "ecc2_type",  # old code
-                       lca1ur = "ecc_type_ur", lca2ur = "ecc2_type_ur")  # old code
-  # LCA, old traits
-  if (grepl("lca([0-9])(o|u)([0-9])", pheno) & is.null(pheno.var))
-    pheno.var <<- # maps, e.g., lca6o5 to t6_overall_5cm
-      gsub("lca([0-9])(o|u)([0-9])", "lca_t\\1_\\2\\3", pheno)
+                       lca.t6h.5cm = "t6h_overall_5cm", lca.t3.5cm = "t3_overall_5cm")  # old code
+  # # LCA, old traits
+  # if (grepl("lca([0-9])(o|u)([0-9])", pheno) & is.null(pheno.var))
+  #   pheno.var <<- # maps, e.g., lca6o5 to t6_overall_5cm
+  #     gsub("lca([0-9])(o|u)([0-9])", "lca_t\\1_\\2\\3", pheno)
+  
   # LCA, new traits
   if (grepl("lca\\.(t[0-9])\\.([0-9])cm", pheno) & is.null(pheno.var))
     pheno.var <<- pheno
@@ -184,8 +184,7 @@ typePheno <- function(pheno) {
   pheno.name <<- switch(pheno, CF = "caries", ecc = "ECC", t3c = "t3c", t6c = "t6c",
                         t3cb = "t3c b", t3 = "t3", t6 = "t6",
                         microt3b = "micro t3 b", microt3cb = "micro t3c b",
-                        lca1 = "LCA1", lca2 = "LCA2", 
-                        lca1ur = "LCA1 (untreated)", lca2ur = "LCA2 (untreated)")
+                        lca.t6h.5cm = "LCA t6h 5cm", lca.t3.5cm = "LCA t3 5cm")
   if (grepl("lca([0-9])(o|u)([0-9])", pheno) & is.null(pheno.name))
     pheno.name <<- # maps, e.g., lca6o5 to t6_overall_5cm
     gsub("lca([0-9])(o|u)([0-9])", "LCA (t\\1_\\2_\\3 levels)", pheno) %>% 
@@ -199,17 +198,18 @@ typePheno <- function(pheno) {
   lvl       <<- switch(pheno, CF = c("caries", "cariesfree"), ecc = c("healthy", "restored", "caries"), 
                        t3c = NA, t6c = NA, t3cb = NA, t3 = NA, t6 = NA,
                        microt3b = NA, microt3cb = NA,
-                       lca1 = c("healthy", "I", "II", "III", "IV"),
-                       lca2 = c("healthy", "I", "II", "III", "IV", "V"),
-                       lca1ur = c("healthy", "restored", "I", "II", "III"),
-                       lca2ur = c("healthy", "restored", "I", "II", "III", "IV"))
+                       lca.t6h.5cm = c("I", "II", "III", "IV", "V"),
+                       # lca.t3.5cm = c("CF", "I", "II", "III", "IV", "V"))
+                       lca.t3.5cm = c("I", "II", "III", "IV", "V"))
   if (grepl("lca", pheno) & is.null(pheno.name)) {
     lvl <<- levels(dat$meta[[pheno.var]])
   }
   
   n.lvl     <<- switch(pheno, CF = 1, ecc = 2, t3c = 1, t6c = 1, t3cb = 1, 
                        t3 = 1, t6 = 1, microt3b = 1, microt3cb = 1,
-                       lca1 = 5, lca2 = 6, lca1ur = 5, lca2ur = 6)
+                       lca.t6h.5cm = 5, 
+                       # lca.t3.5cm = 6)
+                       lca.t3.5cm = 5) # not including "CF".
   if (grepl("lca", pheno) & is.null(pheno.name))
     n.lvl <<- length(lvl)
   
@@ -272,9 +272,14 @@ typePheno <- function(pheno) {
         nrmScale = switch(DR.no, `1` =  8e+6, `2` = 11e+6) # Bracken
       if (ZOE == 1) # Last updated on Jan 22, 2021
         nrmScale = switch(DR.no, `1` =  5e+6, `2` = 3e+6) # Bracken
-    } else if (humann == 3) {                                       # Humann3
+    } else if (humann == 3 & type == "gene") {                                       # Humann3
       if (ZOE == 2) # Last updated on March 24, 2021
         nrmScale = switch(DR.no, `1` =  7e+6, `2` = 14e+6) # Humann3 7,212,041 / 13,928,475
+      if (ZOE == 1)
+        stop("Not defined.")
+    } else if (humann == 3 & type == "path") {                                       # Humann3
+      if (ZOE == 2) # Last updated on March 24, 2021
+        nrmScale = switch(DR.no, `1` =  NA, `2` = 4e+5) # Humann3 NA / 383,119
       if (ZOE == 1)
         stop("Not defined.")
     } else {
@@ -288,6 +293,17 @@ typePheno <- function(pheno) {
   if (nrm) dat <<- normalize(dat, scale = nrmScale) # nrmScale = 1e+6
   if (screen & !nrm & detect.rel.abund) stop("normalization is not done, so the abundance screening cannot be done by the relative abundance.")
   dat$meta[, c("ST.DNA", "ST.RNA")] <<- dat$otu %>% apply(2:3, sum, na.rm = TRUE)
+  
+  
+  if (grepl("lca", pheno)) {
+    # dat.lca = readRDS("../Data-processed/data.outcome_lca.ZOE2.rds")
+    dat.lca = 
+      read.csv("Data/data.lca.ZOE2_main_20220627.csv") %>% 
+      mutate(t6h_overall_5cm = factor(t6h_overall_5cm, levels = c("I", "II", "III", "IV", "V")),
+             # t3_overall_5cm = factor(t3_overall_5cm, levels = c("CF", "I", "II", "III", "IV", "V")))
+             t3_overall_5cm = factor(t3_overall_5cm, levels = c("I", "II", "III", "IV", "V")))
+    dat$meta <<- left_join(dat$meta, dat.lca %>% dplyr::select(-id_MTX), by = c("id_MTG"))
+  }
   
   # check congruence of ids
   cat("congruence of ids: ", all(dat$otu %>% colnames == dat$meta$id), "\n")
@@ -386,7 +402,7 @@ typePheno <- function(pheno) {
   
   ## 1.2 data frame for regression
   dat.reg <<- data.frame(Unit = as.numeric(dat$otu[1, , DR.no]), 
-                         ST = dat$meta[, c("ST.DNA", "ST.RNA")[DR.no]] %>% 
+                         ST = dat$meta[c("ST.DNA", "ST.RNA")[DR.no]] %>% 
                            unlist %>% as.numeric,
                          id = dat$meta$id, 
                          binaryDNA = ifelse(as.numeric(dat$otu[1, , 1]), 1, 0),

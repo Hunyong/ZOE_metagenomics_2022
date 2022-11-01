@@ -69,6 +69,8 @@
 ### 3. Correlation matrices
   
   names_microb = dat$taxa$bacteria
+  names_microb_short = names_microb %>% gsub("^([a-zA-Z])([a-zA-Z]*) (.*)", "\\1. \\3", .)
+  
   cor_D0 <- cor(resid_D0[, names_microb %in% key.bact16])
   cor_D1 <- cor(resid_D1[, names_microb %in% key.bact16])
   cor_R0 <- cor(resid_R0[, names_microb %in% key.bact16 ])
@@ -76,7 +78,7 @@
   
   rownames(cor_D0) <- colnames(cor_D0) <- colnames(cor_D1) <- rownames(cor_D1) <- 
     rownames(cor_R0) <- colnames(cor_R0) <- colnames(cor_R1) <- rownames(cor_R1) <- 
-    names_microb[names_microb %in% key.bact16]
+    names_microb_short[names_microb %in% key.bact16]
  
   # removing the correlations of themselves
   for (i in 1:16) {
@@ -124,10 +126,11 @@
   for (i in 1:4) {
     plotList[[i]] = 
       pheatmap(corList[[i]], 
-               main = graphicParams$label[i],
+               main = "", # graphicParams$label[i],
                breaks=seq(-1, 1, by = 0.02), cluster_rows = F, cluster_cols = F,
-               treeheight_row = 0, treeheight_col = 0, fontsize = 12)[[4]]
+               treeheight_row = 0, treeheight_col = 0, fontsize = 20)[[4]]
     # dev.off()
   }
   plotAll <- grid.arrange(arrangeGrob(grobs= plotList, ncol=2, labels = c("A", "C", "B", "D")))
-  ggsave("figure/Fig3_heatmap.pdf", plotAll, width = 22, height = 20)
+  ggsave("figure/Fig3_heatmap.png", plotAll, width = 22, height = 20)
+  

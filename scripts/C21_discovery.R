@@ -11,7 +11,7 @@
 ### 0.2 parameters
   ZOE = 2  # ZOE == 2: ZOE 2.0 main study, ZOE == 1: ZOE 2.0 pilot study
   type =  "bact"
-  humann = 2; bracken = TRUE
+  bracken = TRUE
   nrm = TRUE #normalization
   
 

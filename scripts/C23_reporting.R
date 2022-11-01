@@ -84,9 +84,12 @@
           note.p = ifelse(zoe1.p <= 0.05, "~'** '", note.p),
           note.p = ifelse(zoe1.p <= 0.01, "~'***'", note.p),
           top4 = species %in% top.bact4,
+          species.short = gsub("^([a-zA-Z])([a-zA-Z]*) (.*)", "\\1. \\3", species),
           # p-value based label
-          label = sprintf("%s%s%s~%s", 
-                          ifelse(top4, "underline(", ""), gsub(" ", "~", species), ifelse(top4, ")", ""),
+          label = sprintf("italic(%s%s%s)~%s", 
+                          ifelse(top4, "underline(", ""), 
+                          gsub(" ", "~", species.short), 
+                          ifelse(top4, ")", ""),
                           note.p))
       
       # Graphical parameters
@@ -100,7 +103,7 @@
         geom_text_repel(data = combined2 %>% filter(species %in% key.bact16),
                         aes(label = label), hjust = 1, direction = "y", parse = TRUE,
                         nudge_x = 10, segment.size = 0.2, segment.alpha = 0.5, #segment.colour = "navyblue",
-                        size = 3) +
+                        size = 4) +
         xlim(xlim1) + guides(col = "none", size = guide_legend(title= "-log (FDR-adjusted p-value) in the replication sample")) +
         geom_abline(slope = 1, intercept = 0, col = "gray50") + 
         scale_size_continuous(range = size.log.p) +
@@ -126,9 +129,9 @@
   
   coef.plot.main = 
     plot_grid(plotlist = 
-                lapply(1:4, function(x) coef.plot[[x]] + theme(legend.position="none", axis.title = element_blank()) +
+                lapply(1:4, function(x) coef.plot[[x]] + theme(legend.position="none", axis.title = element_blank())),# +
                          # annotate("text", x = -0.05, y = 1, label = coef.plot.label[x]) + 
-                         ggtitle(coef.plot.label[x])), 
+                         # ggtitle(coef.plot.label[x])), 
               nrow = 2, ncol = 2)+
     draw_label("Discovery sample log-normal model coefficient", x=0.5, y=  0, vjust= 0.5, angle=  0) +
     draw_label("Replication sample log-normal model coefficient", x=0, y=  0.5, vjust= 0, angle= 90) +
@@ -137,7 +140,7 @@
   p.final = 
     plot_grid(coef.plot.main, coef.plot.legend, ncol = 1, rel_heights = c(1, 0.05)) 
   
-  save_plot(paste0("figure/Fig2_C2_validation_DRNA_phenotype.pdf"), 
+  save_plot(paste0("figure/Fig2_C2_validation_DRNA_phenotype.png"), 
             p.final, base_height = 12, base_width = 12)
   
   
@@ -198,10 +201,13 @@
           note.pR = ifelse(lm.p.R <= 0.10, "~'*  '", "~'   '"),
           note.pR = ifelse(lm.p.R <= 0.05, "~'** '", note.pR),
           note.pR = ifelse(lm.p.R <= 0.01, "~'***'", note.pR),
+          species.short = gsub("^([a-zA-Z])([a-zA-Z]*) (.*)", "\\1. \\3", species),
           
           top4 = species %in% {top.bact4 %>% gsub(".*s__", "", .) %>% gsub("_", " ", .)},
-          label = sprintf("%s%s%s~%s/%s",
-                          ifelse(top4, "underline(", ""), gsub(" ", "~", species), ifelse(top4, ")", ""),
+          label = sprintf("italic(%s%s%s)~%s/%s",
+                          ifelse(top4, "underline(", ""), 
+                          gsub(" ", "~", species.short), 
+                          ifelse(top4, ")", ""),
                           note.p, note.pR)) %>% 
         mutate(genus = factor(gsub(" .*", "", species)))
       y.rng = range(tib.DR$lm.coef.D)
@@ -225,7 +231,7 @@
                         # aes(label = species %>% paste0(" ")), 
                         hjust = 1, direction = "y",
                         nudge_x = 2, segment.size = 0.2, segment.alpha = 0.5, #segment.colour = "navyblue",
-                        size = 3)
+                        size = 4)
       names(DR.plot)[counter] = plot.nm
       counter = counter + 1
     }
@@ -245,7 +251,8 @@
                 lapply(1:4, function(x) 
                   DR.plot[[x]] + 
                     theme(legend.position="none", axis.title = element_blank()) +
-                    ggtitle(DR.plot.label[x])), 
+                    ggtitle("")),
+                    #ggtitle(DR.plot.label[x])), 
               nrow = 2, ncol = 2)+
     draw_label("Log-normal model coefficient in MTG", 
                x=0.5, y=  0, vjust= 0.5, angle=  0) +
@@ -256,7 +263,7 @@
   p.final = 
     plot_grid(DR.plot.main, DR.plot.legend, ncol = 1, rel_heights = c(1, 0.05)) 
   
-  save_plot(paste0("figure/EFig1_C2_validation_study_phenotype.pdf"), 
+  save_plot(paste0("figure/EFig1_C2_validation_study_phenotype.png"), 
             p.final, base_height = 12, base_width = 12)
   
   
