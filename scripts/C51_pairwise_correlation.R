@@ -132,5 +132,9 @@
     # dev.off()
   }
   plotAll <- grid.arrange(arrangeGrob(grobs= plotList, ncol=2, labels = c("A", "C", "B", "D")))
-  ggsave("figure/Fig3_heatmap.png", plotAll, width = 22, height = 20)
+  ggsave("figure/Fig3_heatmap.pdf", plotAll, width = 22, height = 20)
+  
+  # raw data file for figure 3.
+  library(xlsx)
+  write.xlsx(corList, 'figure/raw_data_for_Fig3.xlsx', sheetName = paste0("fig3_", c("DNA_health", "RNA_health", "DNA_disease", "RNA_disease")))
   

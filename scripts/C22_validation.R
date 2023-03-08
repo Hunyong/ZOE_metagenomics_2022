@@ -18,6 +18,12 @@
                pval = result$pval[sig, "phenotype"],
                pval.adj = result$pval.adj[sig, "phenotype"])
   }
+  .two_sided_ci = function(stat, p) {
+    se = abs(stat)/qnorm(1 - p/2)
+    ci = stat + c(-1,1) * qnorm(0.975) * se
+    return(ci)
+  }
+  two_sided_ci = Vectorize(.two_sided_ci)
   
 
 ##### 1. Identifying the 23 species all FDR significant, discovered by the main data
@@ -33,6 +39,7 @@
   ZOE = 1
   counter = 1  # initializing the counter
   coef.plot = list()
+  raw_data_file = tibble()
   for (DR.no in 1:2) {
     DRNA = c("DNA", "RNA")[DR.no]
     
@@ -53,6 +60,7 @@
       ## 2.1 setting file names
       output.nm.validation = paste0("output/C2_LM_bracken_", DRNA, "-", pheno, "-validation", ".rds")
       output.nm.combined = gsub("-validation\\.rds", "-combined.rds", output.nm.validation)
+      output.nm.combined_csv = gsub("\\.rds", ".csv", output.nm.combined)
 
       ## 2. running the validation tests
       ## 1.1 Model
@@ -118,8 +126,35 @@
                zoe1 = result$coef[, "phenotype"],
                zoe1.p = result$pval[, "phenotype"],
                zoe1.q = result$pval.adj[, "phenotype"])
+      ci2 = two_sided_ci(combined$zoe2, combined$zoe2.p)
+      combined$zoe2_lb = ci2[1, ]
+      combined$zoe2_ub = ci2[2, ]
+      ci1 = two_sided_ci(combined$zoe1, combined$zoe1.p)
+      combined$zoe1_lb = ci1[1, ]
+      combined$zoe1_ub = ci1[2, ]
+      
       saveRDS(combined, output.nm.combined)
+      
+      # Supplementary tables
+      raw_data_file = rbind(raw_data_file, combined %>% mutate(type = DRNA, phenotype = pheno))
       
       counter = counter + 1
     }
   }
+  
+  library(openxlsx)
+  raw_data_file %>% 
+    transmute(
+      type, phenotype,
+      species, genus, 
+      zoe2_coef = zoe2, 
+      zoe2_lb, zoe2_ub, 
+      zoe2_p = zoe2.p,
+      zoe2_q = zoe2.q,
+      zoe1_coef = zoe1, 
+      zoe1_lb, zoe1_ub,
+      zoe1_p = zoe1.p,
+      zoe1_q = zoe1.q
+    ) %>% 
+    write.xlsx("figure/raw_data_for_Fig2_and_EFig1.xlsx", sheetName = "Fig2_and_EFig1")
+    

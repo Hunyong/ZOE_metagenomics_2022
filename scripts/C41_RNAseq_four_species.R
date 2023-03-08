@@ -51,7 +51,7 @@
     
     outMain = data.frame(gene = NA, 
                          coef = rep(NA, length(genes)), 
-                         pval = NA, qval = NA)
+                         se = NA, pval = NA, qval = NA)
     
     cat(nm, "\n")
     i = 1
@@ -60,7 +60,7 @@
       dat.tmp$rna = rna.dat[, g1]
       out = lm(micro_t3c_b ~ agemo + race2 + rna + batch.RNA, data = dat.tmp) %>% summary %>% coef
       outMain[i, c("gene")] = g1
-      outMain[i, c("coef", "pval")] = out["rna", c("Estimate", "Pr(>|t|)")] %>% print
+      outMain[i, c("coef", "se", "pval")] = out["rna", c("Estimate", "Std. Error", "Pr(>|t|)")] %>% print
       i = i + 1
     }
     outMain[, "qval"] = p.adjust(outMain[, "pval"], method = "BH")
@@ -78,6 +78,8 @@
     filter(qval <= 0.05) %>% 
     transmute(Gene = gsub("^[a-zA-Z]+_", "", gene),
               species = gsub("(^[a-zA-Z]+)_.*", "\\1", gene),
+              coef, se, 
+              ci_lb = coef - se * qnorm(0.975), ci_ub = coef + se * qnorm(0.975),
               p = pval,
               direction = ifelse(coef >= 0, "+", "-")) %>% 
     arrange(desc(species), p)
@@ -90,6 +92,7 @@
                          dimnames = list(geneSm, geneSs, c("coef", "pval", "qval")))
   outInteraction2 = data.frame(geneSm = NA,geneSs = NA, 
                                coef = rep(NA, length(geneSm) * length(geneSs)), coef.Sm = NA, coef.Ss = NA,
+                               se = NA, se.Sm = NA, se.Ss = NA,
                                pval = NA, pval.Sm = NA, pval.Ss = NA, 
                                qval = NA, qval.Sm = NA, qval.Ss = NA,
                                sig.interaction = "")
@@ -101,13 +104,13 @@
       dat.tmp$Ss = rna.sputigena[, g2]
       out = lm(micro_t3c_b ~ agemo + race2 + Sm * Ss + batch.RNA, data = dat.tmp) %>% summary %>% coef
       outInteraction2[i, c("geneSm", "geneSs")] = c(g1, g2)
-      outInteraction2[i, c("coef", "pval")] = 
-        outInteraction[g1, g2, 1:2] = 
-        out["Sm:Ss", c("Estimate", "Pr(>|t|)")] %>% print
-      outInteraction2[i, c("coef.Sm", "pval.Sm")] = 
-        out["Sm", c("Estimate", "Pr(>|t|)")] %>% print
-      outInteraction2[i, c("coef.Ss", "pval.Ss")] = 
-        out["Ss", c("Estimate", "Pr(>|t|)")] %>% print
+      outInteraction2[i, c("coef", "se", "pval")] = 
+        outInteraction[g1, g2, 1:3] = 
+        out["Sm:Ss", c("Estimate", "Std. Error", "Pr(>|t|)")] %>% print
+      outInteraction2[i, c("coef.Sm", "se.Sm", "pval.Sm")] = 
+        out["Sm", c("Estimate", "Std. Error", "Pr(>|t|)")] %>% print
+      outInteraction2[i, c("coef.Ss", "se.Ss", "pval.Ss")] = 
+        out["Ss", c("Estimate", "Std. Error", "Pr(>|t|)")] %>% print
       i = i + 1
     }
   }
@@ -116,6 +119,12 @@
   outInteraction2[, "qval.Ss"] = p.adjust(outInteraction2[, "pval.Ss"], method = "BH")
   
   outInteraction2[outInteraction2$qval <= 0.05, "sig.interaction"] = "sig"
-  outInteraction2 = outInteraction2 %>% arrange(pval) 
+  outInteraction2 = 
+    outInteraction2 %>% arrange(pval) %>% 
+    transmute(geneSm, geneSs, 
+              coef.int = coef, se.int = se, p.int = pval, q.int = qval, ci_lb.int = coef.int - se.int * qnorm(0.975), ci_ub.int = coef.int + se.int * qnorm(0.975),
+              coef.Sm = coef.Sm, se.Sm = se.Sm, p.Sm = pval.Sm, q.Sm = qval.Sm, ci_lb.Sm = coef.Sm - se.Sm * qnorm(0.975), ci_ub.Sm = coef.Sm + se.Sm * qnorm(0.975),
+              coef.Ss = coef.Ss, se.Ss = se.Ss, p.Ss = pval.Ss, q.Ss = qval.Ss, ci_lb.Ss = coef.Ss - se.Ss * qnorm(0.975), ci_ub.Ss = coef.Ss + se.Ss * qnorm(0.975),
+              sig.interaction)
   # Extended Data Table 4
   outInteraction2 %>% write.csv("output/ETable4_C41_RNASeq_four_sepcies_lm_interaction.csv")

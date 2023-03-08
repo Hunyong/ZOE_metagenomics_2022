@@ -86,11 +86,14 @@
           top4 = species %in% top.bact4,
           species.short = gsub("^([a-zA-Z])([a-zA-Z]*) (.*)", "\\1. \\3", species),
           # p-value based label
-          label = sprintf("italic(%s%s%s)~%s", 
+          label = sprintf("italic(%s%s%s~(~%2.3f))~%s", 
                           ifelse(top4, "underline(", ""), 
                           gsub(" ", "~", species.short), 
                           ifelse(top4, ")", ""),
-                          note.p))
+                          zoe1.p,
+                          note.p),
+          label = gsub("\\(~0\\.000\\)", "( '<'~0.001)", label),
+          label = gsub("(\\(~0\\.\\d\\d)0\\)", "\\10)", label))
       
       # Graphical parameters
       rng.zoe2 = combined2$zoe2 %>% range(na.rm = TRUE)
@@ -140,7 +143,7 @@
   p.final = 
     plot_grid(coef.plot.main, coef.plot.legend, ncol = 1, rel_heights = c(1, 0.05)) 
   
-  save_plot(paste0("figure/Fig2_C2_validation_DRNA_phenotype.png"), 
+  save_plot(paste0("figure/Fig2_C2_validation_DRNA_phenotype.pdf"), 
             p.final, base_height = 12, base_width = 12)
   
   
@@ -204,11 +207,13 @@
           species.short = gsub("^([a-zA-Z])([a-zA-Z]*) (.*)", "\\1. \\3", species),
           
           top4 = species %in% {top.bact4 %>% gsub(".*s__", "", .) %>% gsub("_", " ", .)},
-          label = sprintf("italic(%s%s%s)~%s/%s",
+          label = sprintf("italic(%s%s%s)~(~%2.3f~','~%2.3f )~%s/~%s",
                           ifelse(top4, "underline(", ""), 
                           gsub(" ", "~", species.short), 
                           ifelse(top4, ")", ""),
-                          note.p, note.pR)) %>% 
+                          lm.p.D, lm.p.R, note.p, note.pR),
+          label = gsub("0\\.000", " '<'~0.001", label)
+          ) %>% 
         mutate(genus = factor(gsub(" .*", "", species)))
       y.rng = range(tib.DR$lm.coef.D)
       
@@ -230,8 +235,9 @@
                         aes(label = label, col = genus), parse = TRUE,
                         # aes(label = species %>% paste0(" ")), 
                         hjust = 1, direction = "y",
-                        nudge_x = 2, segment.size = 0.2, segment.alpha = 0.5, #segment.colour = "navyblue",
+                        nudge_x = 2, segment.size = 0.5, segment.alpha = 0.5, #segment.colour = "navyblue",
                         size = 4)
+      DR.plot[[counter]]
       names(DR.plot)[counter] = plot.nm
       counter = counter + 1
     }
@@ -263,7 +269,7 @@
   p.final = 
     plot_grid(DR.plot.main, DR.plot.legend, ncol = 1, rel_heights = c(1, 0.05)) 
   
-  save_plot(paste0("figure/EFig1_C2_validation_study_phenotype.png"), 
-            p.final, base_height = 12, base_width = 12)
+  save_plot(paste0("figure/EFig1_C2_validation_study_phenotype.pdf"), 
+            p.final, base_height = 18, base_width = 18)
   
   

@@ -39,7 +39,7 @@
     dat.reg$logUnit = log2(as.numeric(dat$otu[1, , 2]))
     full <- lm(model1, data = dat.reg)
     nm <- names(full$coefficients)
-    result.coef <- result.pval <- 
+    result.coef <- result.pval <- result.se <-
       matrix(NA, nrow = length(path.with.key.bact), ncol = length(nm), 
              dimnames = list(path.with.key.bact, nm)) %>% 
       as.data.frame()
@@ -56,11 +56,13 @@
       full <- lm(model1, data = dat.reg)
       full.summary <- full %>% summary %>% coef
       result.coef[i, nm %in% rownames(full.summary)] <- full.summary[, "Estimate"]
+      result.se[i, nm %in% rownames(full.summary)] <- full.summary[, "Std. Error"]
       result.pval[i, nm %in% rownames(full.summary)] <- (full %>% summary %>% coef)[, "Pr(>|t|)"]
     }
     result <- list(screen = dat$screen,
                    epsilon = dat$epsilon,
                    coef = result.coef,
+                   se = result.se,
                    pval = result.pval)
     
     ## 2.2 p-adjusting
@@ -93,6 +95,7 @@
   result = readRDS(sprintf("output/C32_LM_humann3_sigTaxa16_Marginal_path-%s-%s-ZOE2.rds", DR.test, pheno.test))
   result_t3c = tibble(pathway =  result$coef %>% rownames, 
                       coef.ind = result$coef$phenotype, 
+                      se.ind = result$se$phenotype,
                       p.ind = result$pval$phenotype,
                       q.ind = result$pval.adj$phenotype,
                       star.ind = ifelse(q.ind  <= 0.05, "*", "")) 
@@ -100,6 +103,7 @@
   result = readRDS(sprintf("output/C32_LM_humann3_sigTaxa16_Marginal_path-%s-%s-ZOE2.rds", DR.test, pheno.test))
   result_mt3c = tibble(pathway =  result$coef %>% rownames, 
                        coef.loc = result$coef$phenotype, 
+                       se.loc = result$se$phenotype,
                        p.loc = result$pval$phenotype,
                        q.loc = result$pval.adj$phenotype,
                        star.loc = ifelse(q.loc  <= 0.05, "*", "")) 
@@ -107,13 +111,15 @@
     left_join(result_t3c, result_mt3c) %>% 
     left_join(tab2c, .) %>% 
     left_join(pth.names) %>% 
-    transmute(pathway, description = pathname, p = p.loc, beta = coef.loc, 
+    transmute(pathway, description = pathname, p = p.loc, beta = coef.loc,  se = se.loc,
+              ci_lb = beta - se * qnorm(0.975),  ci_ub = beta + se * qnorm(0.975),
               `expression rank` = rank.overall, 
               `% sig species` = X..key.species, `sig species` = key.species) %>% 
     arrange(p)
   write.csv(tab3, sprintf("output/ETable2_C32_composition_in_path_humann3_RNA_sigTaxa16_Marginal.csv"))
   
-  tab2b %>% 
+  tab_for_EFig2 =
+    tab2b %>% 
     left_join(result_mt3c) %>% 
     left_join(pth.names) %>% 
     mutate(pathway = ifelse(!is.na(pathname), sprintf("%s (%s) ", pathway, pathname), pathway),
@@ -122,7 +128,8 @@
            `Log-normal model coefficient` = coef.loc,
            `% significant species` = `% key species`,
            `-log10 FDR-adjust p-values` = -log10(`q.loc`),
-           pway = sprintf("%s\n [%s] ", pathway, `key species`)) %>% 
+           pway = sprintf("%s\n [%s] ", pathway, `key species`)) 
+  tab_for_EFig2 %>% 
     ggplot(aes(y = `Log-normal model coefficient`,
                x = `% significant species`,
                size = `-log10 FDR-adjust p-values`,
@@ -149,3 +156,6 @@
               size = 3, col = "black")
   ggsave(sprintf("figure/EFig2_C32_composition_in_path_humann3_RNA_sigTaxa16_Marginal.pdf"),
          width = 10, height = 6)
+  
+  library(openxlsx)
+  write.xlsx(tab_for_EFig2, "figure/raw_data_for_EFig2.xlsx", sheetName = "EFig2")
